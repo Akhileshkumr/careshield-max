@@ -299,6 +299,83 @@ design it is nearly unreachable, and is implemented defensively.
 
 ---
 
+## What is code, and what is data
+
+A fair question about this design: why is the workflow a TypeScript constant rather than a
+definition in the database, where it could be changed without a deploy?
+
+The question contains two things that have opposite answers.
+
+### The state machine is code
+
+Every transition carries a side effect that only code can express:
+
+| Transition | What actually happens |
+|---|---|
+| → `MEDICAL_DECLARED` | the underwriting rules run and a decision is persisted |
+| → `PREMIUM_PAID` | a card is charged, inside an open transaction, under a row lock |
+| → `POLICY_ISSUED` | a sequence number is burned and a policy row is inserted |
+
+A JSON graph rich enough to say *"charge the provider here, inside this transaction, while holding
+this row lock, and roll all of it back if the provider throws"* is not configuration any more. It
+has handler references, ordering and conditionals — a programming language, but with no type
+checker, no debugger and no stack traces.
+
+Two guarantees would be surrendered on day one:
+
+- **The database would stop enforcing validity.** `quote_status` is a native Postgres enum
+  (`QUOTE_GENERATED|MEDICAL_DECLARED|PREMIUM_PAID|POLICY_ISSUED|EXPIRED|DECLINED`), so a bogus
+  status fails at INSERT. Statuses loaded from JSON cannot be constrained that way.
+- **The compiler would stop catching missing states.** `ALLOWED_TRANSITIONS` is typed
+  `Record<QuoteStatus, readonly QuoteStatus[]>`, so adding a state without deciding where it may go
+  is a build error. In JSON it is a production surprise.
+
+If the product genuinely needed per-customer step sequences, the answer would be a real workflow
+engine — Temporal, or a BPMN runtime — not bespoke JSON in a `definitions` table.
+
+### The rating rules are data — and today they are not
+
+This is the half of the question where the criticism lands.
+
+`PREMIUM_RULES` is a frozen `as const`, and `calculatePremium(input)` closes over it. That is fine
+for one product on day one, and wrong the moment the base premium moves to ₹12,000.
+
+Quotes do persist the whole breakdown — `base_premium`, `age_loading`, `condition_loading`,
+`total_premium` — which is better than storing a total alone. But nothing records *which version of
+the rules produced those numbers*. When a customer disputes a premium eight months after the rates
+changed, we cannot prove what the rules were on the day they bought. For a regulated product that is
+a compliance gap, not a missing feature.
+
+The shape that closes it:
+
+```sql
+product_versions (id, product_code, version, rules jsonb, active_from, active_to)
+quotes.product_version_id → product_versions(id)   -- append-only; rules never mutate in place
+```
+
+`calculatePremium(input)` becomes `calculatePremium(input, rules)` — still pure, still no clock and
+no I/O, so the truth-table tests carry over unchanged. Purity is what makes an instant decision
+reproducible in the first place; injecting the rules preserves that property rather than trading it
+away.
+
+### Git publishes to the database
+
+One thing worth saying plainly: a definition living in a database row is a *weaker* source of truth
+than one living in git. Git gives review, blame, CI and rollback. A `rules` row gives an `UPDATE`
+statement and no record of who changed a price, or why.
+
+So rules are authored in git and *published* into the version table:
+
+```
+rates/careshield-max.v3.json ──publish──▶ product_versions (id=3, rules=…, active_from=…)
+  reviewed in a PR, tested in CI                             ▲
+                                     quotes.product_version_id ┘
+```
+
+Reproducibility from the database, review from git, and nothing edited in place.
+
+---
+
 ## API
 
 All endpoints require `x-service-token` (sent by the Next.js server, never the browser).
@@ -408,6 +485,10 @@ The ones that matter:
 
 ## What I'd add next
 
-Structured logging with request IDs · OpenAPI/Swagger · rate limiting on checkout · the saga
+Versioned rating rules, as described in [What is code, and what is data](#what-is-code-and-what-is-data)
+— the largest piece of deferred work here, and the only one that is a compliance gap rather than a
+convenience.
+
+Then: structured logging with request IDs · OpenAPI/Swagger · rate limiting on checkout · the saga
 refactor and its reconciliation job · a real PSP behind the existing `PaymentProvider` interface ·
 the `EXPIRED` sweep on a schedule rather than on demand.

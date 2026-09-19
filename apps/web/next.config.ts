@@ -15,6 +15,9 @@ import type { NextConfig } from 'next';
 // Next only reads .env from its own directory, but configuration lives at the repo
 // root. next.config.ts is evaluated in the server process, so values set here reach
 // Server Components and Server Actions — which is the only place they are read.
+// Next only reads .env from its own directory, but configuration lives at the repo
+// root. next.config.ts is evaluated in the server process, so values set here reach
+// Server Components and Server Actions — which is the only place they are read.
 function loadNearestEnv(): void {
   let directory = process.cwd();
 
