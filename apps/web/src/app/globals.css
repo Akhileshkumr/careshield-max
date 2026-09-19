@@ -1,0 +1,82 @@
+@import 'tailwindcss';
+
+/**
+ * Design tokens.
+ *
+ * Declared as CSS custom properties and redeclared under a dark-mode media
+ * query, so every component reads one name and both themes work without a
+ * single `dark:` utility scattered through the markup.
+ */
+@theme {
+  --color-ink-50: oklch(0.985 0.002 250);
+  --color-ink-100: oklch(0.96 0.004 250);
+  --color-ink-200: oklch(0.91 0.006 250);
+  --color-ink-400: oklch(0.65 0.012 250);
+  --color-ink-600: oklch(0.47 0.016 250);
+  --color-ink-800: oklch(0.27 0.02 250);
+  --color-ink-900: oklch(0.19 0.022 250);
+
+  --color-brand-50: oklch(0.96 0.03 195);
+  --color-brand-100: oklch(0.92 0.06 195);
+  --color-brand-500: oklch(0.62 0.12 195);
+  --color-brand-600: oklch(0.54 0.13 195);
+  --color-brand-700: oklch(0.45 0.12 195);
+
+  --color-success-100: oklch(0.94 0.06 155);
+  --color-success-600: oklch(0.56 0.14 155);
+  --color-success-700: oklch(0.46 0.13 155);
+
+  --color-warn-100: oklch(0.95 0.07 85);
+  --color-warn-600: oklch(0.65 0.15 70);
+  --color-warn-700: oklch(0.52 0.14 60);
+
+  --color-danger-100: oklch(0.94 0.05 25);
+  --color-danger-600: oklch(0.58 0.19 25);
+  --color-danger-700: oklch(0.48 0.18 25);
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
+}
+
+:root {
+  --surface: var(--color-ink-50);
+  --surface-raised: white;
+  --border: var(--color-ink-200);
+  --text: var(--color-ink-900);
+  --text-muted: var(--color-ink-600);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: var(--color-ink-900);
+    --surface-raised: var(--color-ink-800);
+    --border: oklch(0.35 0.02 250);
+    --text: var(--color-ink-100);
+    --text-muted: var(--color-ink-400);
+  }
+}
+
+body {
+  background: var(--surface);
+  color: var(--text);
+}
+
+/**
+ * Never remove focus rings — a keyboard user has no other way to tell where
+ * they are. These make them unmistakable instead.
+ */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-brand-600);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Respect a user's stated preference for less motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

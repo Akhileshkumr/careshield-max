@@ -1,0 +1,30 @@
+# Ephemeral PostgreSQL for the CareShield Max buy journey.
+#
+# The data directory is mounted on tmpfs, so the database lives entirely in
+# memory and is destroyed with the container. `docker compose down` leaves
+# nothing behind — which is what "ephemeral instance" asks for, and it also
+# means every reviewer starts from an identical empty schema.
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: careshield-db
+    environment:
+      POSTGRES_USER: careshield
+      POSTGRES_PASSWORD: careshield
+      POSTGRES_DB: careshield
+      # The data dir is throwaway, so skip fsync for speed.
+      POSTGRES_INITDB_ARGS: '--data-checksums'
+    command: >
+      postgres
+      -c fsync=off
+      -c synchronous_commit=off
+      -c full_page_writes=off
+    ports:
+      - '5432:5432'
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U careshield -d careshield']
+      interval: 2s
+      timeout: 3s
+      retries: 30

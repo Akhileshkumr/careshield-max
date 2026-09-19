@@ -1,0 +1,38 @@
+{
+  "name": "careshield-max",
+  "private": true,
+  "version": "1.0.0",
+  "description": "D2C health insurance buy journey \u2014 quote, medical declaration, instant bind & issue",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "db:up": "docker compose up -d --wait",
+    "db:down": "docker compose down -v",
+    "db:generate": "dotenv -e .env -- npm run -w @careshield/api db:generate",
+    "db:migrate": "dotenv -e .env -- npm run -w @careshield/api db:migrate",
+    "db:studio": "dotenv -e .env -- npm run -w @careshield/api db:studio",
+    "build:contracts": "npm run -w @careshield/contracts build",
+    "build": "npm run build:contracts && npm run -w @careshield/api build && npm run -w @careshield/web build",
+    "dev": "npm run build:contracts && dotenv -e .env -- concurrently -n contracts,api,web -c gray,cyan,magenta \"npm:dev:contracts\" \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:contracts": "npm run -w @careshield/contracts dev",
+    "dev:api": "npm run -w @careshield/api dev",
+    "dev:web": "npm run -w @careshield/web dev",
+    "test": "npm run build:contracts && npm run -w @careshield/api test && npm run -w @careshield/web test",
+    "test:unit": "npm run build:contracts && npm run -w @careshield/api test:unit",
+    "test:e2e": "npm run build:contracts && dotenv -e .env -- npm run -w @careshield/api test:e2e",
+    "typecheck": "npm run build:contracts && npm run -w @careshield/api typecheck && npm run -w @careshield/web typecheck",
+    "start": "dotenv -e .env -- concurrently -n api,web -c cyan,magenta \"npm:start:api\" \"npm:start:web\"",
+    "start:api": "npm run -w @careshield/api start",
+    "start:web": "npm run -w @careshield/web start"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "dotenv-cli": "^11.0.0",
+    "typescript": "^6.0.3"
+  }
+}
