@@ -1,3 +1,5 @@
+import '../../src/config/load-env';
+
 import { ValidationPipe, type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';

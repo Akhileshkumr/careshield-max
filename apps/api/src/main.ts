@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import './config/load-env';
 import 'reflect-metadata';
 
 import { Logger, ValidationPipe } from '@nestjs/common';
